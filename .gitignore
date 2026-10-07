@@ -3,3 +3,8 @@
 __pycache__/
 data/
 *.log
+video/frames/
+video/audio/
+video/clips/
+demo_video.mp4
+.streamlit/secrets.toml
