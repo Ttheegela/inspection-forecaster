@@ -1,6 +1,6 @@
 # Inspection Forecaster
 
-Demo video (2.5 min): https://youtu.be/pfMb-eEBETs
+Demo video (2.5 min): https://youtu.be/irhme66ttB8
 
 Predicts a NYC restaurant's next health inspection grade (A, B or C) before the inspector
 arrives, using only evidence available before the inspection date, then backtests those
