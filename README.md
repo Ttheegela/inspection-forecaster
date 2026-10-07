@@ -111,3 +111,13 @@ python backtest.py                 # stratified backtest -> forecasts index + re
   simplified.
 - No signal exists for some changes (new management, a single bad day), so those are missed.
 - LLM outputs are not fully deterministic; reruns can differ.
+
+## In Kibana
+
+- **Dashboard** "NYC Inspection Forecaster" (`dashboard_setup.py`): backtest scoreboard vs baselines, confusion table,
+  311 complaints over time and on a map, average score by borough, table of every forecast.
+- **Agent Builder** agent "NYC Inspection Analyst" (`agent_builder_setup.py`): chat over the same data with
+  5 custom ES|QL tools + 1 semantic search tool, running on Mistral Medium through an Elastic inference
+  connector. (Large 4's thinking-chunk output isn't parsed by Agent Builder yet, so the chat agent uses Medium;
+  the forecaster itself uses Large 4 directly.)
+- `demo_elastic.py` walks through the Elastic queries in the terminal.
