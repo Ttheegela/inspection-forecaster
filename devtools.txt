@@ -1,0 +1,61 @@
+GET _inference/mistral-embeddings
+
+GET inspections/_mapping
+
+GET inspections/_search
+{
+  "size": 5,
+  "_source": ["dba", "grade", "score", "inspection_date", "zipcode"],
+  "query": {
+    "semantic": {
+      "field": "violations_text",
+      "query": "mice droppings and flies near food prep, cold food held too warm"
+    }
+  }
+}
+
+GET inspections/_search
+{
+  "size": 1,
+  "_source": ["dba", "address", "zipcode", "location"],
+  "query": { "term": { "camis": "50033403" } }
+}
+
+GET complaints_311/_search
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "filter": [
+        { "geo_distance": { "distance": "75m", "location": { "lat": 40.760023562641, "lon": -73.828314315508 } } },
+        { "range": { "created_date": { "gte": "2026-06-15||-90d", "lt": "2026-06-15" } } }
+      ]
+    }
+  },
+  "aggs": {
+    "by_type": { "terms": { "field": "complaint_type" } },
+    "per_week": { "date_histogram": { "field": "created_date", "calendar_interval": "week" } }
+  }
+}
+
+POST _query?format=txt
+{
+  "query": """
+    FROM inspections
+    | WHERE zipcode == "11354" AND inspection_date < "2026-06-15" AND grade IS NOT NULL
+    | STATS n = COUNT(*), avg_score = AVG(score) BY grade
+    | SORT grade
+  """
+}
+
+POST _query?format=txt
+{
+  "query": """
+    FROM forecasts
+    | EVAL agent_hit = CASE(predicted_grade == actual_grade, 1, 0),
+           last_grade_hit = CASE(baseline_grade == actual_grade, 1, 0),
+           last_score_hit = CASE(score_baseline_grade == actual_grade, 1, 0)
+    | STATS n = COUNT(*), agent = AVG(agent_hit), last_grade = AVG(last_grade_hit), last_score = AVG(last_score_hit) BY actual_grade
+    | SORT actual_grade
+  """
+}

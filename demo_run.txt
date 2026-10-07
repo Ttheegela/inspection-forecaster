@@ -1,0 +1,64 @@
+
+=== Forecasting CAMIS 50033403 as of 2026-06-15 ===
+-> get_inspection_history()
+   GUIZ HOU MIAO JIA NOODLES (Chinese): 1 prior inspections, recent scores [25]
+-> nearby_complaints(radius_m=75, days=180)
+   4 complaints within 75m / 180d: {'Food Establishment': 2, 'Food Poisoning': 2}
+-> neighborhood_baseline(days=365)
+   zip 11354: avg score 21.1, bands {'A': 195, 'B': 92, 'C': 110}
+-> similar_violation_restaurants(query='Hot TCS food not held at 140F, cold TCS food held above 41F, no pest management contract, no calibrated thermometer')
+   5 similar: next scores [0, None, 2, None, None]
+-> similar_violation_restaurants(query='Temperature abuse hot holding cold holding repeat violations reinspection')
+   5 similar: next scores [2, None, 21, 11, None]
+=> C (score 30, confidence 0.60)
+   Anchor: the only prior inspection (Cycle/Initial, 2026-04-18) scored 25 (ungraded, B-band) with 5 violations, including critical temperature-abuse items (hot holding <140°F, cold holding >41°F), no pest management contract, and no calibrated thermometer. Per calibration, the last score is the strongest predictor and re-inspections usually stay in the same band or worse; an initial inspection often understates ongoing risk, and there is no evidence of remediation. Adjustments: +4 for 311 complaints within 75m/180 days — 2 Food Poisoning (2026-06-07 at 136-98 Roosevelt, just 8 days before this inspection; 2026-02-03) and 2 Food Establishment complaints including 'Food Contains Foreign Object' (2026-02-15); +3 for the uncorrected temperature-abuse/pest-contract violation pattern, which similar restaurants show is volatile and often scores well above B (comparable cases: 103, 47, 45, 35, 29); +2 for the 11354 zipcode baseline (avg 21.1 over 409 inspections, 27% C-band, top violation codes 10F/06C/06D/02B/08A matching this restaurant's citations). Total ≈ 25 + 9 = ~30, in the C band (28+). A B is possible only if holding temperatures and the pest contract were fixed, for which no evidence exists. Confidence moderate (0.6) due to single-inspection history.
+{
+  "predicted_grade": "C",
+  "predicted_score": 30,
+  "likely_violations": [
+    "Cold TCS food held above 41\u00b0F (06C/06D)",
+    "Hot TCS food not held at or above 140\u00b0F (10F)",
+    "No pest management professional contract / no extermination records (08A/02B)",
+    "No properly scaled/calibrated thermometer provided",
+    "Warewashing: inadequate cleaning/sanitizing of tableware"
+  ],
+  "confidence": 0.6,
+  "reasoning": "Anchor: the only prior inspection (Cycle/Initial, 2026-04-18) scored 25 (ungraded, B-band) with 5 violations, including critical temperature-abuse items (hot holding <140\u00b0F, cold holding >41\u00b0F), no pest management contract, and no calibrated thermometer. Per calibration, the last score is the strongest predictor and re-inspections usually stay in the same band or worse; an initial inspection often understates ongoing risk, and there is no evidence of remediation. Adjustments: +4 for 311 complaints within 75m/180 days \u2014 2 Food Poisoning (2026-06-07 at 136-98 Roosevelt, just 8 days before this inspection; 2026-02-03) and 2 Food Establishment complaints including 'Food Contains Foreign Object' (2026-02-15); +3 for the uncorrected temperature-abuse/pest-contract violation pattern, which similar restaurants show is volatile and often scores well above B (comparable cases: 103, 47, 45, 35, 29); +2 for the 11354 zipcode baseline (avg 21.1 over 409 inspections, 27% C-band, top violation codes 10F/06C/06D/02B/08A matching this restaurant's citations). Total \u2248 25 + 9 = ~30, in the C band (28+). A B is possible only if holding temperatures and the pest contract were fixed, for which no evidence exists. Confidence moderate (0.6) due to single-inspection history.",
+  "trace": [
+    {
+      "tool": "get_inspection_history",
+      "args": {},
+      "result_summary": "GUIZ HOU MIAO JIA NOODLES (Chinese): 1 prior inspections, recent scores [25]"
+    },
+    {
+      "tool": "nearby_complaints",
+      "args": {
+        "radius_m": 75,
+        "days": 180
+      },
+      "result_summary": "4 complaints within 75m / 180d: {'Food Establishment': 2, 'Food Poisoning': 2}"
+    },
+    {
+      "tool": "neighborhood_baseline",
+      "args": {
+        "days": 365
+      },
+      "result_summary": "zip 11354: avg score 21.1, bands {'A': 195, 'B': 92, 'C': 110}"
+    },
+    {
+      "tool": "similar_violation_restaurants",
+      "args": {
+        "query": "Hot TCS food not held at 140F, cold TCS food held above 41F, no pest management contract, no calibrated thermometer"
+      },
+      "result_summary": "5 similar: next scores [0, None, 2, None, None]"
+    },
+    {
+      "tool": "similar_violation_restaurants",
+      "args": {
+        "query": "Temperature abuse hot holding cold holding repeat violations reinspection"
+      },
+      "result_summary": "5 similar: next scores [2, None, 21, 11, None]"
+    }
+  ]
+}
+.venv/bin/python -u agent.py 50033403 2026-06-15  0.37s user 0.10s system 1% cpu 27.180 total

@@ -1,0 +1,74 @@
+Test pool: 2107 graded inspections since 2026-05-01 with prior history
+  natural grade mix: {'A': 1705, 'B': 263, 'C': 139}
+  sampled grade mix: {'A': 10, 'B': 10, 'C': 10} (stratified: C is deliberately OVERSAMPLED vs reality so C-recall is measurable)
+
+Baseline 'same as last grade'   accuracy  33.3%  C-recall  10.0%
+Baseline 'last score -> band'   accuracy  46.7%  C-recall  80.0%
+
+Baseline confusion (rows=actual, cols=predicted):
+baseline   A  B  C
+actual            
+A          9  1  0
+B         10  0  0
+C          9  0  1
+
+Forecasting 30 inspections with the agent (6 workers)...
+  [1/30] LA PASTORA BAKERY              actual=A agent=C baseline=A
+  [2/30] OLDE BROOKLYN BAGEL SHOPPE     actual=A agent=B baseline=B
+  [3/30] REMEDY DINER                   actual=A agent=B baseline=A
+  [4/30] VAN LEEUWEN ICE CREAM          actual=A agent=B baseline=A
+  [5/30] LA CABANA PERUANA RESTAURANT   actual=A agent=C baseline=A
+  [6/30] BENNY'S BRICK OVEN             actual=A agent=C baseline=A
+  [7/30] SOUTH SHORE HOT BAGELS         actual=A agent=B baseline=A
+  [8/30] MILLY'S PIZZERIA               actual=A agent=B baseline=A
+  [9/30] MANCHEGO-KOKO                  actual=B agent=C baseline=A
+  [10/30] DINO'S PIZZA                   actual=B agent=C baseline=A
+  [11/30] SUSHI 21                       actual=B agent=C baseline=A
+  [12/30] CHINTA                         actual=B agent=C baseline=A
+  [13/30] KUIH CAFE                      actual=A agent=C baseline=A
+  [14/30] WENDY'S                        actual=B agent=C baseline=A
+  [15/30] JARDIN DE CHINA                actual=B agent=B baseline=A
+  [16/30] RANO'S CHICKEN BURGERS         actual=B agent=B baseline=A
+  [17/30] THE CRABBY SHACK               actual=A agent=A baseline=A
+  [18/30] PATZERIA'S PERFECT PIZZA       actual=B agent=B baseline=A
+  [19/30] KENNEDY FRIED CHICKEN          actual=B agent=C baseline=A
+  [20/30] PATSY'S PIZZERIA               actual=B agent=C baseline=A
+  [21/30] ATOMIC WINGS                   actual=C agent=C baseline=A
+  [22/30] SHAKING CRAB                   actual=C agent=C baseline=A
+  [23/30] TENGRI TAGH UYGHUR CUISINE     actual=C agent=C baseline=A
+  [24/30] HONG KONG JACKIE CHINESE RESTA actual=C agent=C baseline=A
+  [25/30] HK BAKERY                      actual=C agent=C baseline=C
+  [26/30] GOLDWATER BAR & GRILL          actual=C agent=C baseline=A
+  [27/30] EL TIMBIRICHI RESTAURANT       actual=C agent=C baseline=A
+  [28/30] GUIZ HOU MIAO JIA NOODLES      actual=C agent=C baseline=A
+  [29/30] THE LITTLE BEET                actual=C agent=C baseline=A
+  [30/30] EMPANADAS MONUMENTAL           actual=C agent=B baseline=A
+Saved results.csv
+
+Agent confusion (rows=actual, cols=predicted):
+agent   A  B  C
+actual         
+A       1  5  4
+B       0  3  7
+C       0  1  9
+
+================================================================
+ INSPECTION FORECASTER BACKTEST   30/30 forecasts ok, 0 failed
+================================================================
+ metric                   agent    last grade    last score
+ Accuracy                 43.3%         33.3%         46.7%
+ C-grade recall           90.0%         10.0%         80.0%
+ Violation hit rate       86.7%   (>=1 predicted violation matched)
+ C cases in sample: 10  (C oversampled on purpose; real-world C rate is far lower)
+================================================================
+Wrote 30 docs to ES index 'forecasts' (0 errors)
+
+ES|QL > FROM forecasts | STATS n = COUNT(*), agent_acc = AVG(CASE(correct, 1.0, 0.0)), base_acc = AVG(CASE(baseline_correct, 1.0, 0.0)) BY actual_grade | SORT actual_grade
+/Users/taruntheegela/Library/Application Support/Claude/scratch-workspaces/de58e9fd-fbc0-43fc-93e3-e463aaeb9df8/a9120a0d-137d-41a4-bbba-95b64c4f2a49/scratch-2026-10-07-eb06d4/forecaster/backtest.py:160: ElasticsearchWarning: No limit defined, adding default limit of [1000]
+  print(es.esql.query(query=q, format="txt").body)
+       n       |   agent_acc   |   base_acc    | actual_grade  
+---------------+---------------+---------------+---------------
+10             |0.1            |0.9            |A              
+10             |0.3            |0.0            |B              
+10             |0.9            |0.1            |C              
+

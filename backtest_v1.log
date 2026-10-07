@@ -1,0 +1,74 @@
+Test pool: 2107 graded inspections since 2026-05-01 with prior history
+  natural grade mix: {'A': 1705, 'B': 263, 'C': 139}
+  sampled grade mix: {'A': 10, 'B': 10, 'C': 10} (stratified: C is deliberately OVERSAMPLED vs reality so C-recall is measurable)
+
+Baseline 'same as last grade'   accuracy  33.3%  C-recall   0.0%
+Baseline 'last score -> band'   accuracy  40.0%  C-recall  70.0%
+
+Baseline confusion (rows=actual, cols=predicted):
+baseline   A
+actual      
+A         10
+B         10
+C         10
+
+Forecasting 30 inspections with the agent (4 workers)...
+  [1/30] EL VALLE LENOX                 actual=A agent=B baseline=A
+  [2/30] DUNKIN                         actual=A agent=B baseline=A
+  [3/30] MORRIS PARK PIZZA              actual=A agent=B baseline=A
+  [4/30] SAZON'S NUNEZ                  actual=A agent=C baseline=A
+  [5/30] MALAVITA                       actual=A agent=A baseline=A
+  [6/30] LE GRATIN                      actual=A agent=C baseline=A
+  [7/30] RIVERDALE BAGELS               actual=A agent=B baseline=A
+  [8/30] SPACE CLUB CAFE                actual=A agent=B baseline=A
+  [9/30] CHECKERS                       actual=A agent=A baseline=A
+  [10/30] CJ CAFE                        actual=B agent=B baseline=A
+  [11/30] TOYAMA CUISINE                 actual=A agent=C baseline=A
+  [12/30] PUENTE DEL REY PIZZA Y PICA PO actual=B agent=B baseline=A
+  [13/30] ZHU JI DUMPLING HOUSE          actual=B agent=B baseline=A
+  [14/30] FLAMEZ CUISINE                 actual=B agent=B baseline=A
+  [15/30] BOOTLEG BAR                    actual=B agent=C baseline=A
+  [16/30] SUPER NICE PIZZA               actual=B agent=B baseline=A
+  [17/30] SHUNDECK RESTAURANT            actual=B agent=B baseline=A
+  [18/30] ALIBI CLUB                     actual=B agent=C baseline=A
+  [19/30] HIDE & SEEK                    actual=B agent=C baseline=A
+  [20/30] ATOMIC WINGS                   actual=C agent=B baseline=A
+  [21/30] CAFE RAE'S                     actual=C agent=B baseline=A
+  [22/30] MCMAHON'S PUBLIC HOUSE         actual=C agent=B baseline=A
+  [23/30] DIG INN                        actual=B agent=ERR baseline=A  !! ReadTimeout: The read operation timed out
+  [24/30] VENICE                         actual=C agent=B baseline=A
+  [25/30] EL MACO RESTAURANT             actual=C agent=B baseline=A
+  [26/30] LEDO PIZZA                     actual=C agent=B baseline=A
+  [27/30] DUNKIN                         actual=C agent=ERR baseline=A  !! ReadTimeout: The read operation timed out
+  [28/30] NY HAPPY FAMILY INC            actual=C agent=B baseline=A
+  [29/30] DAANA PAANI                    actual=C agent=B baseline=A
+  [30/30] RUTA OAXACA                    actual=C agent=B baseline=A
+Saved results.csv
+
+Agent confusion (rows=actual, cols=predicted):
+agent   A  B  C
+actual         
+A       2  5  3
+B       0  6  3
+C       0  9  0
+
+================================================================
+ INSPECTION FORECASTER BACKTEST   28/30 forecasts ok, 2 failed
+================================================================
+ metric                   agent    last grade    last score
+ Accuracy                 28.6%         35.7%         42.9%
+ C-grade recall            0.0%          0.0%         77.8%
+ Violation hit rate       92.9%   (>=1 predicted violation matched)
+ C cases in sample: 9  (C oversampled on purpose; real-world C rate is far lower)
+================================================================
+Wrote 28 docs to ES index 'forecasts' (0 errors)
+
+ES|QL > FROM forecasts | STATS n = COUNT(*), agent_acc = AVG(CASE(correct, 1.0, 0.0)), base_acc = AVG(CASE(baseline_correct, 1.0, 0.0)) BY actual_grade | SORT actual_grade
+/Users/taruntheegela/Library/Application Support/Claude/scratch-workspaces/de58e9fd-fbc0-43fc-93e3-e463aaeb9df8/a9120a0d-137d-41a4-bbba-95b64c4f2a49/scratch-2026-10-07-eb06d4/forecaster/backtest.py:160: ElasticsearchWarning: No limit defined, adding default limit of [1000]
+  print(es.esql.query(query=q, format="txt").body)
+       n       |    agent_acc     |   base_acc    | actual_grade  
+---------------+------------------+---------------+---------------
+10             |0.2               |1.0            |A              
+9              |0.6666666666666666|0.0            |B              
+9              |0.0               |0.0            |C              
+
