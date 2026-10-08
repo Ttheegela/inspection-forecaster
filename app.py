@@ -7,7 +7,6 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import pydeck as pdk
-import segno
 import streamlit as st
 
 st.set_page_config(page_title="Inspection Forecaster", page_icon="🍽️", layout="wide")
@@ -68,17 +67,59 @@ def parse_list(s):
         return [s]
 
 
-@st.cache_data
-def qr_png(url):
-    buf = io.BytesIO()
-    segno.make(url, error="m").save(buf, kind="png", scale=8, border=2)
-    return buf.getvalue()
+CSS = """
+<style>
+.flow{display:flex;align-items:stretch;gap:6px;margin:6px 0 14px 0;flex-wrap:wrap}
+.flow .card{flex:1;min-width:150px;background:#F6F4F1;border-radius:14px;padding:14px 14px 12px;
+  border-top:4px solid #FA520F}
+.flow .card .ic{font-size:26px;line-height:1}
+.flow .card .t{font-weight:700;margin:6px 0 2px;font-size:15px}
+.flow .card .d{color:#555;font-size:12.5px;line-height:1.35}
+.flow .ar{align-self:center;color:#FA520F;font-size:22px;font-weight:700}
+.tl{position:relative;margin:4px 0 10px 8px;padding-left:18px;border-left:3px solid #E7E2DC}
+.tl .ev{position:relative;margin:0 0 12px}
+.tl .ev:before{content:"";position:absolute;left:-26px;top:3px;width:13px;height:13px;border-radius:50%;
+  background:#fff;border:3px solid #C9C4BD}
+.tl .ev.hot:before{border-color:#FA520F;background:#FA520F}
+.tl .ev .dt{font-size:12px;color:#888}
+.tl .ev .tx{font-size:14px}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-weight:700;font-size:13px;color:#fff}
+.pA{background:#2563EB}.pB{background:#D97706}.pC{background:#DC2626}
+</style>
+"""
 
+FLOW = """
+<div class="flow">
+ <div class="card"><div class="ic">🗽</div><div class="t">NYC Open Data</div>
+  <div class="d">28k restaurant inspections + 100k geo-tagged 311 complaints</div></div>
+ <div class="ar">→</div>
+ <div class="card"><div class="ic">🔎</div><div class="t">Elasticsearch</div>
+  <div class="d">geo_distance, date ranges, aggregations, ES|QL, semantic search (Mistral embeddings)</div></div>
+ <div class="ar">→</div>
+ <div class="card"><div class="ic">🧠</div><div class="t">Mistral Large 4 agent</div>
+  <div class="d">picks which Elastic tools to call. Sees only data <b>before</b> the inspection</div></div>
+ <div class="ar">→</div>
+ <div class="card"><div class="ic">📋</div><div class="t">Forecast</div>
+  <div class="d">grade A / B / C, score, likely violations, reasoning</div></div>
+ <div class="ar">→</div>
+ <div class="card"><div class="ic">✅</div><div class="t">Backtest</div>
+  <div class="d">compared with what inspectors actually found, and with naive baselines</div></div>
+</div>
+"""
 
-def qr_pair(where):
-    a, b = where.columns(2)
-    a.image(qr_png(VIDEO), caption="Demo video", width="stretch")
-    b.image(qr_png(REPO), caption="GitHub repo", width="stretch")
+TIMELINE = """
+<div class="tl">
+ <div class="ev"><div class="dt">Apr 18, 2026 · initial inspection</div>
+  <div class="tx">Score <b>25</b>: temperature abuse, no pest contract (just under the C line)</div></div>
+ <div class="ev hot"><div class="dt">Jun 7, 2026 · 311 complaint, 100 m away</div>
+  <div class="tx"><b>Food poisoning</b> reported nearby</div></div>
+ <div class="ev"><div class="dt">Jun 15, 2026 · before the inspector arrives</div>
+  <div class="tx">Baselines say <span class="pill pA">A</span> or <span class="pill pB">B</span> ·
+   agent says <span class="pill pC">C</span></div></div>
+ <div class="ev hot"><div class="dt">Jun 15, 2026 · inspection result</div>
+  <div class="tx">Actual: <span class="pill pC">C</span> score <b>55</b>. The agent was right.</div></div>
+</div>
+"""
 
 
 def grade_color(g):
@@ -134,8 +175,7 @@ st.caption("Snapshot data (NYC Open Data, Oct 2025 – Oct 2026), not live. The 
 
 page = st.sidebar.radio("Page", ["1-minute pitch", "Walkthrough", "Backtest explorer", "Restaurant lookup", "City explorer"])
 st.sidebar.divider()
-st.sidebar.markdown("**Scan to watch or fork**")
-qr_pair(st.sidebar)
+st.sidebar.markdown(f"[▶ Demo video]({VIDEO})  \n[⌥ GitHub repo]({REPO})")
 
 STEPS = ["1 · The question", "2 · The data", "3 · The agent", "4 · Did it work?", "5 · Explore & links"]
 
@@ -153,6 +193,8 @@ if page == "1-minute pitch":
     k[1].metric("v1 → v2", "0 → 9 of 10", "backtest exposed a bad assumption")
     k[2].metric("Inspections in Elastic", f"{len(insp):,}", f"{insp['camis'].nunique():,} restaurants", delta_color="off")
     k[3].metric("311 complaints (geo)", f"{len(comp):,}", "rodent · food poisoning", delta_color="off")
+
+    st.markdown(CSS + FLOW, unsafe_allow_html=True)
 
     left, right = st.columns([3, 2], gap="medium")
     with left:
@@ -172,15 +214,7 @@ if page == "1-minute pitch":
         st.caption("Heat: 311 rodent / food-poisoning complaints · dark dots: restaurants graded C")
     with right:
         st.markdown("**Live example: Guiz Hou Miao Jia Noodles, Flushing**")
-        g = insp[insp["camis"] == "50033403"].sort_values("inspection_date")
-        a, b = st.columns(2)
-        a.metric("Agent forecast", "C", "score ~30", delta_color="off")
-        b.metric("Actual (2026-06-15)", "C", "score 55", delta_color="off")
-        st.markdown(
-            "- Last score **25**: both baselines said A or B\n"
-            "- **Food-poisoning** 311 complaint 100 m away, 8 days before\n"
-            "- Uncorrected temperature + pest violations\n"
-            "- Zip 11354: 27% of inspections are C")
+        st.markdown(TIMELINE, unsafe_allow_html=True)
         both = pd.concat([metrics(r1).assign(run="v1"), metrics(r2).assign(run="v2 (held-out)")])
         both = both[(both["model"] == "Agent") | (both["run"] == "v2 (held-out)")]
         both["label"] = both["model"].where(both["model"] != "Agent", "Agent " + both["run"])
@@ -191,11 +225,10 @@ if page == "1-minute pitch":
             tooltip=["label", alt.Tooltip("c_recall:Q", format=".0%")]).properties(height=190), width="stretch")
         st.caption(f"Honest trade-off: accuracy {m2.loc['Agent', 'accuracy']:.0%} vs "
                    f"{m2.loc['Last score → band', 'accuracy']:.0%} for the best baseline (over-flags A's).")
-    q = st.columns([1, 1, 1, 3])
-    q[0].image(qr_png(VIDEO), caption="Demo video", width=130)
-    q[1].image(qr_png(REPO), caption="GitHub", width=130)
-    q[3].markdown("<br>**Elastic** geo + time + semantic retrieval · **Mistral** reasoning, embeddings & voice · "
-                  "**a backtest** to prove it.", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center;color:#666'>[demo video]({VIDEO}) · [code on GitHub]({REPO})</p>"
+                .replace("[demo video](" + VIDEO + ")", f"<a href='{VIDEO}'>demo video</a>")
+                .replace("[code on GitHub](" + REPO + ")", f"<a href='{REPO}'>code on GitHub</a>"),
+                unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- Walkthrough
 elif page == "Walkthrough":
@@ -261,7 +294,6 @@ elif page == "Walkthrough":
             "- **City explorer**: grades and complaints by borough, cuisine and date\n\n"
             "Use the sidebar to switch pages.")
         st.subheader("Watch the demo · get the code")
-        qr_pair(st.container(border=False))
         st.markdown(f"[{VIDEO}]({VIDEO}) · [{REPO}]({REPO})")
 
     st.divider()
