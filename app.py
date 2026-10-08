@@ -132,15 +132,73 @@ st.caption("Snapshot data (NYC Open Data, Oct 2025 – Oct 2026), not live. The 
            "(Mistral Large + Elasticsearch) runs locally with API keys; this app shows its saved backtest "
            f"and the same evidence it reads. Code: [{REPO.split('github.com/')[1]}]({REPO})")
 
-page = st.sidebar.radio("Page", ["Walkthrough", "Backtest explorer", "Restaurant lookup", "City explorer"])
+page = st.sidebar.radio("Page", ["1-minute pitch", "Walkthrough", "Backtest explorer", "Restaurant lookup", "City explorer"])
 st.sidebar.divider()
 st.sidebar.markdown("**Scan to watch or fork**")
 qr_pair(st.sidebar)
 
 STEPS = ["1 · The question", "2 · The data", "3 · The agent", "4 · Did it work?", "5 · Explore & links"]
 
+# ---------------------------------------------------------------- 1-minute pitch
+if page == "1-minute pitch":
+    st.markdown(
+        "<h2 style='margin-bottom:0'>Can AI predict a NYC restaurant's health grade "
+        "<span style='color:#FA520F'>before the inspector arrives?</span></h2>"
+        "<p style='color:#666;margin-top:4px'>Mistral Large 4 agent · Elasticsearch evidence dated before the "
+        "inspection · backtested against what really happened</p>", unsafe_allow_html=True)
+    m2 = metrics(r2).set_index("model")
+    k = st.columns(4)
+    k[0].metric("C restaurants caught", f"{round(m2.loc['Agent', 'c_recall'] * 10)} / 10",
+                f"vs {round(m2.loc['Last grade', 'c_recall'] * 10)}/10 'same as last time'")
+    k[1].metric("v1 → v2", "0 → 9 of 10", "backtest exposed a bad assumption")
+    k[2].metric("Inspections in Elastic", f"{len(insp):,}", f"{insp['camis'].nunique():,} restaurants", delta_color="off")
+    k[3].metric("311 complaints (geo)", f"{len(comp):,}", "rodent · food poisoning", delta_color="off")
+
+    left, right = st.columns([3, 2], gap="medium")
+    with left:
+        heat = comp.dropna(subset=["lat"])[["lat", "lon"]]
+        cs = insp[insp["grade"] == "C"].dropna(subset=["lat"]).drop_duplicates("camis")
+        cs = cs.assign(label=cs["dba"] + " · C (" + cs["score"].astype("Int64").astype(str) + ")")
+        st.pydeck_chart(pdk.Deck(
+            layers=[
+                pdk.Layer("HeatmapLayer", heat, get_position="[lon, lat]", radius_pixels=25, intensity=1,
+                          threshold=0.05, opacity=0.55,
+                          color_range=[[255, 237, 213], [254, 186, 116], [251, 146, 60], [250, 82, 15], [194, 49, 4]]),
+                pdk.Layer("ScatterplotLayer", cs[["lat", "lon", "label"]], get_position="[lon, lat]",
+                          get_fill_color=[17, 24, 39, 200], get_radius=45, radius_min_pixels=2, pickable=True),
+            ],
+            initial_view_state=pdk.ViewState(latitude=40.71, longitude=-73.93, zoom=9.6, pitch=0),
+            map_style=MAP_STYLE, tooltip={"text": "{label}"}), height=430)
+        st.caption("Heat: 311 rodent / food-poisoning complaints · dark dots: restaurants graded C")
+    with right:
+        st.markdown("**Live example: Guiz Hou Miao Jia Noodles, Flushing**")
+        g = insp[insp["camis"] == "50033403"].sort_values("inspection_date")
+        a, b = st.columns(2)
+        a.metric("Agent forecast", "C", "score ~30", delta_color="off")
+        b.metric("Actual (2026-06-15)", "C", "score 55", delta_color="off")
+        st.markdown(
+            "- Last score **25**: both baselines said A or B\n"
+            "- **Food-poisoning** 311 complaint 100 m away, 8 days before\n"
+            "- Uncorrected temperature + pest violations\n"
+            "- Zip 11354: 27% of inspections are C")
+        both = pd.concat([metrics(r1).assign(run="v1"), metrics(r2).assign(run="v2 (held-out)")])
+        both = both[(both["model"] == "Agent") | (both["run"] == "v2 (held-out)")]
+        both["label"] = both["model"].where(both["model"] != "Agent", "Agent " + both["run"])
+        st.altair_chart(alt.Chart(both, title="C-grade recall").mark_bar(cornerRadiusEnd=4).encode(
+            y=alt.Y("label:N", title=None, axis=alt.Axis(labelLimit=220, labelOverlap=False), sort=["Agent v1", "Agent v2 (held-out)", "Last grade", "Last score → band"]),
+            x=alt.X("c_recall:Q", title=None, axis=alt.Axis(format="%"), scale=alt.Scale(domain=[0, 1])),
+            color=alt.condition(alt.datum.label == "Agent v2 (held-out)", alt.value("#FA520F"), alt.value("#C9C4BD")),
+            tooltip=["label", alt.Tooltip("c_recall:Q", format=".0%")]).properties(height=190), width="stretch")
+        st.caption(f"Honest trade-off: accuracy {m2.loc['Agent', 'accuracy']:.0%} vs "
+                   f"{m2.loc['Last score → band', 'accuracy']:.0%} for the best baseline (over-flags A's).")
+    q = st.columns([1, 1, 1, 3])
+    q[0].image(qr_png(VIDEO), caption="Demo video", width=130)
+    q[1].image(qr_png(REPO), caption="GitHub", width=130)
+    q[3].markdown("<br>**Elastic** geo + time + semantic retrieval · **Mistral** reasoning, embeddings & voice · "
+                  "**a backtest** to prove it.", unsafe_allow_html=True)
+
 # ---------------------------------------------------------------- Walkthrough
-if page == "Walkthrough":
+elif page == "Walkthrough":
     step = st.session_state.setdefault("step", 0)
     st.progress((step + 1) / len(STEPS), text=STEPS[step])
 
